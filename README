@@ -1,0 +1,93 @@
+This library creates a wrapper around the Corona SDK Facebook API support.
+Using this library will streamline your Facebook client logic and make it 
+easier to debug and to catch/handle errors.  Features include:
+
+ * Support for testing of Facebook API calls from the Corona simulator.
+
+ * Detailed debug logging of all method call and protocol data, specific to 
+   the method/API being called (can be enabled/disabled with a flag).
+
+ * Ability to specify a listener for each individual Facebook API call
+   instance, if desired.
+
+ * Facebook API request state (method, path, and params) provided to the
+   response listener.
+
+ * Flood protection (new API call not allowed until previous call completed).
+
+ * Tracking of login state, plus error handling for API calls made when not
+   logged in.
+
+ * Automatic decoding of Facebook API JSON responses, with error checking.
+
+ * Consolidation of error indication and error details (for both call/connection
+   errors and protocol errors).
+
+Module Settings:
+
+   libFacebook.isDebug
+
+   libFacebook.FB_App_ID (must be set by caller)
+
+   libFacebook.FB_Access_Token (must also be set by caller for use in simulator)
+
+Module Methods:
+
+   libFacebook.isLoggedIn( )
+
+   libFacebook.login( permissions, onLoginComplete )
+
+   libFacebook.request( path, httpMethod, params, onRequestComplete )
+
+   libFacebook.showDialog( params, onDialogComplete )
+
+   libFacebook.logout( onLogoutComplete )
+
+Usage:
+
+   local libFacebook = require("lib_facebook")
+   libFacebook.FB_App_ID = "your_app_id"
+   libFacebook.isDebug = true
+
+   local function onRequestComplete( event )
+       if event.isError then
+           print("Facebook request error: " .. event.response.error.message)
+       else
+           -- Success - process my friends list
+           print("Friends list fetched with request: " .. event.request.path)
+           for _, friend in pairs(event.response.data) do
+                print("  Facebook friend: " .. friend.name .. ", id: " .. friend.id)
+           end
+       end
+   end
+
+   local function onLoginComplete( event )
+       if event.phase ~= "login" then
+           print("Facebook login not successful")
+       elseif event.isError then
+           print("Facebook login error, details: " .. event.response.error.message)
+       else
+           -- Successfully logged in, now list my friends
+           libFacebook.request("me/friends", "GET", {limit = "10"}, onRequestComplete)
+       end
+   end
+
+   libFacebook.login({"publish_stream"}, onLoginComplete)
+
+Simulator support
+
+   For Windows/Mac simulator testing go to the Facebook Graph API Eplorer:
+
+      http://developers.facebook.com/tools/explorer
+
+   Set "Application" to your app.  Select "Get Access Token" (choose appropriate
+   permissions).  Use the supplied access token as the value for FB_Access_Token
+   (exported from this module, and which should be set by the calling module). 
+   Note that this token will time out and you will need to repeat this action for
+   each testing session (normal access tokens expire after two hours).
+
+   Known limitations under simulator:
+
+      No support for facebook.showDialog( )
+      No file upload support
+      No actual authentication (login/logout stubbed out)
